@@ -243,6 +243,67 @@ class TenantService:
         return updated_accounts
 
     @staticmethod
+    def delete(id):
+        department = Department.query.filter_by(id=id).first()
+        if department:
+            db.session.delete(department)
+            db.session.commit()
+
+
+    @staticmethod
+    def RetrieveDepartment(id):
+        department = Department.query.filter_by(id=id).first()
+        return department
+
+    @staticmethod
+    def create_tenant_department(name, code):
+        department1 = Department(
+            name=name,
+            code=code
+        )
+        db.session.add(department1)
+        db.session.commit()
+        return department1
+
+
+
+    @staticmethod
+    def get_tenant_departments() -> List[Department]:
+        """Get tenant departments"""
+        query = (
+             db.session.query(Department)
+             .select_from(Department)
+#             .join(
+#                 TenantAccountJoin, Account.id == TenantAccountJoin.account_id
+#             )
+             
+        )
+
+        # Initialize an empty list to store the updated accounts
+        departments = Department.query.all()
+
+        #for account, role in query:
+        #    account.role = role
+        # departments.append({
+        #     'id': "1",
+        #     'name': "总经理办公室",
+        #     'code': "CEO office"
+        # })
+        # departments.append({
+        #     'id': "2",
+        #     'name': "研发部",
+        #     'code': "development"
+        # })
+        # departments.append({
+        #     'id': "3",
+        #     'name': "产品中心",
+        #     'code': "product"
+        # })
+        #departments.append(account)
+
+        return departments
+
+    @staticmethod
     def has_roles(tenant: Tenant, roles: List[TenantAccountJoinRole]) -> bool:
         """Check if user has any of the given roles for a tenant"""
         if not all(isinstance(role, TenantAccountJoinRole) for role in roles):

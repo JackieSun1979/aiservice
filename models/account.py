@@ -100,6 +100,20 @@ class Account(UserMixin, db.Model):
             ai.account_id == self.id
         ).all()
 
+class Department(db.Model):
+    __tablename__ = 'departments'
+    __table_args__ = (
+        db.PrimaryKeyConstraint('id', name='department_pkey'),
+    )
+    id = db.Column(UUID, server_default=db.text('uuid_generate_v4()'))
+    name = db.Column(db.String(255))
+    code = db.Column(db.String(128))
+    created_at = db.Column(db.DateTime, nullable=False, server_default=db.text('CURRENT_TIMESTAMP(0)'))
+    updated_at = db.Column(db.DateTime, nullable=False, server_default=db.text('CURRENT_TIMESTAMP(0)'))
+       
+    def __init__(self, name, code):
+        self.name = name
+        self.code = code
 
 class Tenant(db.Model):
     __tablename__ = 'tenants'
