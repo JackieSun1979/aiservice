@@ -153,4 +153,3 @@ sdks/python-client/dify_client.egg-info
 
 .vscode/
 __pycache__
-.env
