@@ -152,4 +152,5 @@ sdks/python-client/dist
 sdks/python-client/dify_client.egg-info
 
 .vscode/
-__pycache__/
+__pycache__
+.env
