@@ -101,6 +101,25 @@ class DepartmentDeleteApi(Resource):
         return {'result': 'success'}, 204
 
 
+class DepartmentDetailApi(Resource):
+    """Update department."""
+
+    @setup_required
+#    @login_required
+#    @account_initialization_required
+    def get(self, department_id):
+
+        department = Department.query.get(str(department_id))
+        if not department:
+            abort(404)
+
+        dresult = marshal(department, department_fields)
+
+        return {
+            'result': 'success',
+            'department': dresult
+        }, 200
+    
 class DepartmentUpdateApi(Resource):
     """Update department."""
 
@@ -138,3 +157,4 @@ api.add_resource(DepartmentListApi, '/workspaces/current/departments')
 api.add_resource(DepartmentCreateApi, '/workspaces/current/departments')
 api.add_resource(DepartmentDeleteApi, '/workspaces/current/departments/<uuid:department_id>')
 api.add_resource(DepartmentUpdateApi, '/workspaces/current/departments/<uuid:department_id>')
+api.add_resource(DepartmentDetailApi, '/workspaces/current/departments/<uuid:department_id>')
