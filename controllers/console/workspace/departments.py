@@ -70,19 +70,9 @@ class DepartmentCreateApi(Resource):
         name = args['name']
         code = args['code']
 
-#        inviter = current_user
-
-#        try:
-#            token = RegisterService.invite_new_department(inviter.current_tenant, invitee_email, role=invitee_role,
-#       
-#        
-#                                                inviter=inviter)
-
         department = TenantService.create_tenant_department(name, code)
 
         dresult = marshal(department, department_fields)
-
-        # todo:413
 
         return {
             'result': 'success',
@@ -102,13 +92,9 @@ class DepartmentDeleteApi(Resource):
             abort(404)
 
         try:
-            TenantService.remove_department_from_tenant(current_user.current_tenant, department, current_user)
-        except services.errors.account.CannotOperateSelfError as e:
-            return {'code': 'cannot-operate-self', 'message': str(e)}, 400
-        except services.errors.account.NoPermissionError as e:
-            return {'code': 'forbidden', 'message': str(e)}, 403
-        except services.errors.account.DepartmentNotInTenantError as e:
-            return {'code': 'department-not-found', 'message': str(e)}, 404
+            TenantService.remove_department_from_tenant(department)
+#        except services.errors.account.DepartmentNotInTenantError as e:
+#            return {'code': 'department-not-found', 'message': str(e)}, 404
         except Exception as e:
             raise ValueError(str(e))
 
@@ -123,19 +109,23 @@ class DepartmentUpdateApi(Resource):
 #    @account_initialization_required
     def put(self, department_id):
         parser = reqparse.RequestParser()
-        parser.add_argument('role', type=str, required=True, location='json')
+        parser.add_argument('name', type=str, required=True, location='json')
+        parser.add_argument('code', type=str, required=True, location='json')
         args = parser.parse_args()
-        new_role = args['role']
 
-        if new_role not in ['admin', 'normal', 'owner']:
-            return {'code': 'invalid-role', 'message': 'Invalid role'}, 400
+        name = args['name']
+        code = args['code']
+#        new_role = args['role']
 
-        department = Account.query.get(str(department_id))
+#        if new_role not in ['admin', 'normal', 'owner']:
+#            return {'code': 'invalid-role', 'message': 'Invalid role'}, 400
+
+        department = Department.query.get(str(department_id))
         if not department:
             abort(404)
 
         try:
-            TenantService.update_department_role(current_user.current_tenant, department, new_role, current_user)
+            TenantService.update_department(department, name, code)
         except Exception as e:
             raise ValueError(str(e))
 
@@ -147,4 +137,4 @@ class DepartmentUpdateApi(Resource):
 api.add_resource(DepartmentListApi, '/workspaces/current/departments')
 api.add_resource(DepartmentCreateApi, '/workspaces/current/departments')
 api.add_resource(DepartmentDeleteApi, '/workspaces/current/departments/<uuid:department_id>')
-api.add_resource(DepartmentUpdateApi, '/workspaces/current/departments/<uuid:department_id>/update')
+api.add_resource(DepartmentUpdateApi, '/workspaces/current/departments/<uuid:department_id>')

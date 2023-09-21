@@ -351,6 +351,13 @@ class TenantService:
         if not ta_operator or ta_operator.role not in perms[action]:
             raise NoPermissionError(f'No permission to {action} member.')
 
+
+    @staticmethod
+    def remove_department_from_tenant(department: Department) -> None:
+        """Remove department from tenant"""
+        db.session.delete(department)
+        db.session.commit()
+
     @staticmethod
     def remove_member_from_tenant(tenant: Tenant, account: Account, operator: Account) -> None:
         """Remove member from tenant"""
@@ -368,6 +375,16 @@ class TenantService:
         account.password = None
         account.password_salt = None
 
+        db.session.commit()
+
+
+    @staticmethod
+    def update_department(department: Department, name: str, code: str) -> None:
+        """Update department"""
+#        TenantService.check_member_permission(tenant, operator, member, 'update')
+        # Update the department
+        department.name = name
+        department.code = code
         db.session.commit()
 
     @staticmethod
