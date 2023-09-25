@@ -12,6 +12,7 @@ from sqlalchemy import func
 
 from events.tenant_event import tenant_was_created
 from extensions.ext_redis import redis_client
+from models.model import EndUser
 from services.errors.account import AccountLoginError, CurrentPasswordIncorrectError, LinkAccountIntegrateError, \
     TenantNotFound, AccountNotLinkTenantError, InvalidActionError, CannotOperateSelfError, MemberNotInTenantError, \
     RoleAlreadyAssignedError, NoPermissionError, AccountRegisterError, AccountAlreadyInTenantError
@@ -265,6 +266,26 @@ class TenantService:
         db.session.commit()
         return department1
 
+    @staticmethod
+    def create_tenant_enduser(tenant: Tenant, name, loginname):
+        end_user = EndUser(
+            tenant_id=tenant.id,
+            name=name,
+            type='service_api',
+            is_anonymous=False,
+            session_id=loginname
+        )
+        db.session.add(end_user)
+        db.session.commit()
+
+        return end_user
+
+    @staticmethod
+    def get_tenant_endusers() -> List[EndUser]:
+        """Get tenant endusers"""
+        endusers =  EndUser.query.all()
+        return endusers
+
 
 
     @staticmethod
@@ -281,26 +302,6 @@ class TenantService:
 
         # Initialize an empty list to store the updated accounts
         departments = Department.query.all()
-
-        #for account, role in query:
-        #    account.role = role
-        # departments.append({
-        #     'id': "1",
-        #     'name': "总经理办公室",
-        #     'code': "CEO office"
-        # })
-        # departments.append({
-        #     'id': "2",
-        #     'name': "研发部",
-        #     'code': "development"
-        # })
-        # departments.append({
-        #     'id': "3",
-        #     'name': "产品中心",
-        #     'code': "product"
-        # })
-        #departments.append(account)
-
         return departments
 
     @staticmethod
@@ -353,6 +354,12 @@ class TenantService:
 
 
     @staticmethod
+    def remove_enduser_from_tenant(enduser: EndUser) -> None:
+        """Remove enduser from tenant"""
+        db.session.delete(enduser)
+        db.session.commit()
+
+    @staticmethod
     def remove_department_from_tenant(department: Department) -> None:
         """Remove department from tenant"""
         db.session.delete(department)
@@ -375,6 +382,16 @@ class TenantService:
         account.password = None
         account.password_salt = None
 
+        db.session.commit()
+
+
+    @staticmethod
+    def update_enduser(enduser: EndUser, name: str, loginname: str) -> None:
+        """Update department"""
+#        TenantService.check_member_permission(tenant, operator, member, 'update')
+        # Update the department
+        enduser.name = name
+        enduser.session_id = loginname
         db.session.commit()
 
 

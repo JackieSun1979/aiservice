@@ -153,3 +153,6 @@ sdks/python-client/dify_client.egg-info
 
 .vscode/
 __pycache__
+controllers/console/__pycache__/__init__.cpython-311.pyc
+controllers/console/__pycache__/__init__.cpython-311.pyc
+services/__pycache__/account_service.cpython-311.pyc
