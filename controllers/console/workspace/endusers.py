@@ -47,6 +47,20 @@ enduser_list_fields = {
     'endusers': fields.List(fields.Nested(enduser_fields))
 }
 
+department_fields = {
+    'id': fields.String,
+    'name': fields.String,
+    'enduser_id': fields.String,
+    'code': fields.String,
+    'created_at': fields.String,
+    'updated_at': fields.String,
+}
+
+department_list_fields = {
+    'departments': fields.List(fields.Nested(department_fields))
+}
+
+
 
 class enduserListApi(Resource):
     """List all endusers of current tenant."""
@@ -155,13 +169,27 @@ class enduserUpdateApi(Resource):
         except Exception as e:
             raise ValueError(str(e))
 
-        # todo: 403
-
         return {'result': 'success'}
 
+class enduserdepartmentsApi(Resource):
+    """Update enduser."""
+
+    @setup_required
+    @login_required
+    @account_initialization_required
+    @marshal_with(department_list_fields)
+    def get(self, enduser_id):
+
+        enduser = EndUser.query.get(str(enduser_id))
+        if not enduser:
+            abort(404)
+
+        departments = TenantService.get_enduser_departments(enduser)
+        return {'result': 'success', 'departments': departments}, 200
 
 api.add_resource(enduserListApi, '/workspaces/current/endusers')
 api.add_resource(enduserCreateApi, '/workspaces/current/endusers')
 api.add_resource(enduserDeleteApi, '/workspaces/current/endusers/<uuid:enduser_id>')
 api.add_resource(enduserUpdateApi, '/workspaces/current/endusers/<uuid:enduser_id>')
 api.add_resource(enduserDetailApi, '/workspaces/current/endusers/<uuid:enduser_id>')
+api.add_resource(enduserdepartmentsApi, '/workspaces/current/endusers/<uuid:enduser_id>/departments')

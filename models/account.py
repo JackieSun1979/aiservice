@@ -115,6 +115,38 @@ class Department(db.Model):
         self.name = name
         self.code = code
 
+
+class DepartmentEndUserJoin(db.Model):
+    __tablename__ = 'department_enduser_joins'
+    __table_args__ = (
+        db.PrimaryKeyConstraint('id', name='department_enduser_join_pkey'),
+        db.Index('department_enduser_join_enduser_id_idx', 'enduser_id'),
+        db.Index('department_enduser_join_department_id_idx', 'department_id'),
+        db.UniqueConstraint('department_id', 'enduser_id', name='unique_department_enduser_join')
+    )
+
+    id = db.Column(UUID, server_default=db.text('uuid_generate_v4()'))
+    department_id = db.Column(UUID, nullable=False)
+    enduser_id = db.Column(UUID, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, server_default=db.text('CURRENT_TIMESTAMP(0)'))
+    updated_at = db.Column(db.DateTime, nullable=False, server_default=db.text('CURRENT_TIMESTAMP(0)'))
+
+class DepartmentAppJoin(db.Model):
+    __tablename__ = 'department_app_joins'
+    __table_args__ = (
+        db.PrimaryKeyConstraint('id', name='department_app_join_pkey'),
+        db.Index('department_app_join_app_id_idx', 'app_id'),
+        db.Index('department_app_join_department_id_idx', 'department_id'),
+        db.UniqueConstraint('department_id', 'app_id', name='unique_department_app_join')
+    )
+
+    id = db.Column(UUID, server_default=db.text('uuid_generate_v4()'))
+    department_id = db.Column(UUID, nullable=False)
+    app_id = db.Column(UUID, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, server_default=db.text('CURRENT_TIMESTAMP(0)'))
+    updated_at = db.Column(db.DateTime, nullable=False, server_default=db.text('CURRENT_TIMESTAMP(0)'))
+
+
 class Tenant(db.Model):
     __tablename__ = 'tenants'
     __table_args__ = (
@@ -135,6 +167,8 @@ class Tenant(db.Model):
             Account.id == TenantAccountJoin.account_id,
             TenantAccountJoin.tenant_id == self.id
         ).all()
+
+
 
 
 class TenantAccountJoinRole(enum.Enum):

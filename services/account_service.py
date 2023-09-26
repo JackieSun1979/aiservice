@@ -12,7 +12,7 @@ from sqlalchemy import func
 
 from events.tenant_event import tenant_was_created
 from extensions.ext_redis import redis_client
-from models.model import EndUser
+from models.model import App, EndUser
 from services.errors.account import AccountLoginError, CurrentPasswordIncorrectError, LinkAccountIntegrateError, \
     TenantNotFound, AccountNotLinkTenantError, InvalidActionError, CannotOperateSelfError, MemberNotInTenantError, \
     RoleAlreadyAssignedError, NoPermissionError, AccountRegisterError, AccountAlreadyInTenantError
@@ -267,6 +267,30 @@ class TenantService:
         return department1
 
     @staticmethod
+    def create_department_enduser(department_id, enduser_id):
+        department = Department.query.get(str(department_id))
+        enduser = EndUser.query.get(str(enduser_id))
+        departmentEndUserJoin = DepartmentEndUserJoin(
+            department_id=department.id,
+            enduser_id=enduser.id
+        )
+        db.session.add(departmentEndUserJoin)
+        db.session.commit()
+        return departmentEndUserJoin
+
+    @staticmethod
+    def create_department_app(department_id, app_id):
+        department = Department.query.get(str(department_id))
+        app = App.query.get(str(app_id))
+        departmentappJoin = DepartmentAppJoin(
+            department_id=department.id,
+            app_id=app.id
+        )
+        db.session.add(departmentappJoin)
+        db.session.commit()
+        return departmentappJoin
+
+    @staticmethod
     def create_tenant_enduser(tenant: Tenant, name, loginname):
         end_user = EndUser(
             tenant_id=tenant.id,
@@ -286,19 +310,79 @@ class TenantService:
         endusers =  EndUser.query.all()
         return endusers
 
+    @staticmethod
+    def get_department_endusers(department_id: str) -> List[EndUser]:
+        """Get tenant endusers"""
+        department = Department.query.get(str(department_id))
+        query = (
+            db.session.query(EndUser, DepartmentEndUserJoin.department_id)
+            .select_from(EndUser)
+            .join(
+                DepartmentEndUserJoin, EndUser.id == DepartmentEndUserJoin.enduser_id
+            )
+            .filter(DepartmentEndUserJoin.department_id == department.id)
+        )
+
+        # Initialize an empty list to store the updated endusers
+        endusers = []
+
+        for enduser, department_id in query:
+            enduser.department_id = department_id
+            endusers.append(enduser)
+
+        return endusers
+
+
+    @staticmethod
+    def get_enduser_departments(enduser: EndUser) -> List[Department]:
+        """Get tenant departments"""
+    
+        query = (
+            db.session.query(Department, DepartmentEndUserJoin.enduser_id)
+            .select_from(Department)
+            .join(
+                DepartmentEndUserJoin, Department.id == DepartmentEndUserJoin.department_id
+            )
+            .filter(DepartmentEndUserJoin.enduser_id == enduser.id)
+        )
+
+        # Initialize an empty list to store the updated endusers
+        departments = []
+
+        for department, enduser_id in query:
+            department.enduser_id = enduser_id
+            departments.append(department)
+
+        return departments
+
+
+    @staticmethod
+    def get_department_apps(department_id: str) -> List[App]:
+        """Get tenant apps"""
+        department = Department.query.get(str(department_id))
+        query = (
+            db.session.query(App, DepartmentAppJoin.department_id)
+            .select_from(App)
+            .join(
+                DepartmentAppJoin, App.id == DepartmentAppJoin.app_id
+            )
+            .filter(DepartmentAppJoin.department_id == department.id)
+        )
+
+        # Initialize an empty list to store the updated apps
+        apps = []
+
+        for app, department_id in query:
+            app.department_id = department_id
+            apps.append(app)
+
+        return apps
+
 
 
     @staticmethod
     def get_tenant_departments() -> List[Department]:
         """Get tenant departments"""
-        query = (
-             db.session.query(Department)
-             .select_from(Department)
-#             .join(
-#                 TenantAccountJoin, Account.id == TenantAccountJoin.account_id
-#             )
-             
-        )
 
         # Initialize an empty list to store the updated accounts
         departments = Department.query.all()
@@ -357,6 +441,18 @@ class TenantService:
     def remove_enduser_from_tenant(enduser: EndUser) -> None:
         """Remove enduser from tenant"""
         db.session.delete(enduser)
+        db.session.commit()
+
+    @staticmethod
+    def remove_enduser_from_department(departmentenduserjoin: DepartmentEndUserJoin) -> None:
+        """Remove departmentenduserjoin from tenant"""
+        db.session.delete(departmentenduserjoin)
+        db.session.commit()
+
+    @staticmethod
+    def remove_app_from_department(departmentappjoin: DepartmentAppJoin) -> None:
+        """Remove departmentappjoin from tenant"""
+        db.session.delete(departmentappjoin)
         db.session.commit()
 
     @staticmethod
