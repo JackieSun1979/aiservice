@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-from flask import current_app, jsonify
+from flask import current_app, jsonify, request
 from flask_login import current_user
 from core.login.login import login_required
 from flask_restful import Resource, reqparse, marshal_with, abort, fields, marshal
@@ -60,6 +60,19 @@ department_list_fields = {
     'departments': fields.List(fields.Nested(department_fields))
 }
 
+
+
+class enduserQueryApi(Resource):
+    """List all endusers of current tenant."""
+
+#    @setup_required
+    @login_required
+#    @account_initialization_required
+    @marshal_with(enduser_list_fields)
+    def get(self):
+        loginname = request.args.get('loginname')
+        endusers = TenantService.query_tenant_endusers(loginname)
+        return {'result': 'success', 'endusers': endusers}, 200
 
 
 class enduserListApi(Resource):
@@ -188,6 +201,7 @@ class enduserdepartmentsApi(Resource):
         return {'result': 'success', 'departments': departments}, 200
 
 api.add_resource(enduserListApi, '/workspaces/current/endusers')
+api.add_resource(enduserQueryApi, '/workspaces/current/endusers/query')
 api.add_resource(enduserCreateApi, '/workspaces/current/endusers')
 api.add_resource(enduserDeleteApi, '/workspaces/current/endusers/<uuid:enduser_id>')
 api.add_resource(enduserUpdateApi, '/workspaces/current/endusers/<uuid:enduser_id>')

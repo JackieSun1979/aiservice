@@ -304,6 +304,14 @@ class TenantService:
 
         return end_user
 
+
+    @staticmethod
+    def query_tenant_endusers(loginname: str) -> List[EndUser]:
+        """Get tenant endusers"""
+        endusers =  db.session.query(EndUser).filter(EndUser.session_id == str(loginname)).all()
+        return endusers
+
+
     @staticmethod
     def get_tenant_endusers() -> List[EndUser]:
         """Get tenant endusers"""
