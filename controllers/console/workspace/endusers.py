@@ -66,7 +66,7 @@ class enduserQueryApi(Resource):
     """List all endusers of current tenant."""
 
 #    @setup_required
-    @login_required
+#    @login_required
 #    @account_initialization_required
     @marshal_with(enduser_list_fields)
     def get(self):
@@ -196,9 +196,9 @@ class enduserUpdateApi(Resource):
 class enduserdepartmentsApi(Resource):
     """Update enduser."""
 
-    @setup_required
-    @login_required
-    @account_initialization_required
+#    @setup_required
+#    @login_required
+#    @account_initialization_required
     @marshal_with(department_list_fields)
     def get(self, enduser_id):
 

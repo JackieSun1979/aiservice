@@ -244,9 +244,9 @@ class DepartmentDeleteEndUserApi(Resource):
 class DepartmentAppListApi(Resource):
     """List all apps of current tenant."""
 
-    @setup_required
-    @login_required
-    @account_initialization_required
+#    @setup_required
+#    @login_required
+#    @account_initialization_required
     @marshal_with(app_list_fields)
     def get(self, department_id):
         apps = TenantService.get_department_apps(department_id)
