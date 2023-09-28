@@ -306,9 +306,13 @@ class TenantService:
 
 
     @staticmethod
-    def query_tenant_endusers(loginname: str) -> List[EndUser]:
+    def query_tenant_endusers(key: str, value: str) -> List[EndUser]:
         """Get tenant endusers"""
-        endusers =  db.session.query(EndUser).filter(EndUser.session_id == str(loginname)).all()
+        if key == "loginname":
+            endusers =  db.session.query(EndUser).filter(EndUser.session_id == value).all()
+        if key == "name":
+            endusers =  db.session.query(EndUser).filter(EndUser.name == value).all()
+            
         return endusers
 
 

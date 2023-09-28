@@ -71,7 +71,16 @@ class enduserQueryApi(Resource):
     @marshal_with(enduser_list_fields)
     def get(self):
         loginname = request.args.get('loginname')
-        endusers = TenantService.query_tenant_endusers(loginname)
+        name = request.args.get('name')
+        if name is not None:
+            key = "name"
+            value = name
+        if loginname is not None:
+            key = "loginname"
+            value = loginname  
+
+            
+        endusers = TenantService.query_tenant_endusers(key ,value)
         return {'result': 'success', 'endusers': endusers}, 200
 
 
