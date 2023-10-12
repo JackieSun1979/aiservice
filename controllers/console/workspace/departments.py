@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-from flask import current_app, jsonify
+from flask import current_app, jsonify, request
 from flask_login import current_user
 from core.login.login import login_required
 from flask_restful import Resource, reqparse, marshal_with, abort, fields, marshal
@@ -295,6 +295,33 @@ class DepartmentDeleteAppApi(Resource):
         return {'result': 'success'}, 204
 
 
+class departmentQueryApi(Resource):
+    """List all departments of current tenant."""
+
+#    @setup_required
+#    @login_required
+#    @account_initialization_required
+    @marshal_with(department_list_fields)
+    def get(self):
+        code = request.args.get('code')
+        name = request.args.get('name')
+        q = request.args.get('q')
+        if name is not None:
+            key = "name"
+            value = name
+        if code is not None:
+            key = "code"
+            value = code  
+        if q is not None:
+            key = "q"
+            value = q  
+
+            
+        departments = TenantService.query_tenant_departments(key ,value)
+        return {'result': 'success', 'departments': departments}, 200
+
+
+
 api.add_resource(DepartmentListApi, '/workspaces/current/departments')
 api.add_resource(DepartmentCreateApi, '/workspaces/current/departments')
 api.add_resource(DepartmentDeleteApi, '/workspaces/current/departments/<uuid:department_id>')
@@ -308,3 +335,4 @@ api.add_resource(DepartmentDeleteEndUserApi, '/workspaces/current/departments/<u
 api.add_resource(DepartmentAppListApi, '/workspaces/current/departments/<uuid:department_id>/apps')
 api.add_resource(DepartmentAddAppApi, '/workspaces/current/departments/<uuid:department_id>/addapp/<uuid:app_id>')
 api.add_resource(DepartmentDeleteAppApi, '/workspaces/current/departments/<uuid:department_id>/deleteapp/<uuid:app_id>')
+api.add_resource(departmentQueryApi, '/workspaces/current/departments/query')

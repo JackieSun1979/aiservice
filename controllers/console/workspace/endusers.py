@@ -72,12 +72,16 @@ class enduserQueryApi(Resource):
     def get(self):
         loginname = request.args.get('loginname')
         name = request.args.get('name')
+        q = request.args.get('q')
         if name is not None:
             key = "name"
             value = name
         if loginname is not None:
             key = "loginname"
             value = loginname  
+        if q is not None:
+            key = "q"
+            value = q  
 
             
         endusers = TenantService.query_tenant_endusers(key ,value)

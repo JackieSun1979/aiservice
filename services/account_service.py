@@ -1,6 +1,7 @@
 # -*- coding:utf-8 -*-
 import base64
 import logging
+from operator import or_
 import secrets
 import uuid
 from datetime import datetime
@@ -312,8 +313,24 @@ class TenantService:
             endusers =  db.session.query(EndUser).filter(EndUser.session_id == value).all()
         if key == "name":
             endusers =  db.session.query(EndUser).filter(EndUser.name == value).all()
+        if key == "q":
+            qvalue = "%" + value + "%"
+            endusers =  db.session.query(EndUser).filter(or_(EndUser.session_id.like(qvalue),EndUser.name.like(qvalue))).all()
             
         return endusers
+
+    @staticmethod
+    def query_tenant_departments(key: str, value: str) -> List[Department]:
+        """Get tenant departments"""
+        if key == "code":
+            departments =  db.session.query(Department).filter(Department.code == value).all()
+        if key == "name":
+            departments =  db.session.query(Department).filter(Department.name == value).all()
+        if key == "q":
+            qvalue = "%" + value + "%"
+            departments =  db.session.query(Department).filter(or_(Department.code.like(qvalue),Department.name.like(qvalue))).all()
+            
+        return departments
 
 
     @staticmethod
