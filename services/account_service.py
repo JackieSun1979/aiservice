@@ -384,6 +384,28 @@ class TenantService:
 
         return departments
 
+    @staticmethod
+    def get_department_appids(department_id: str) -> List[str]:
+        """Get tenant apps"""
+        department = Department.query.get(str(department_id))
+        query = (
+            db.session.query(App, DepartmentAppJoin.department_id)
+            .select_from(App)
+            .join(
+                DepartmentAppJoin, App.id == DepartmentAppJoin.app_id  
+            )
+            .filter(DepartmentAppJoin.department_id == department.id)
+        )
+
+        # Initialize an empty list to store the updated apps
+        appids = []
+
+        for app, department_id in query:
+            app.department_id = department_id
+            appids.append(app.id)
+
+        return appids
+
 
     @staticmethod
     def get_department_apps(department_id: str) -> List[App]:

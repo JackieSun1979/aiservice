@@ -1,6 +1,23 @@
 # -*- coding:utf-8 -*-
 from flask import current_app, jsonify, request
 from flask_login import current_user
+from datetime import datetime
+
+import pytz
+from core.login.login import login_required
+from flask_restful import Resource, reqparse, fields, marshal_with
+from flask_restful.inputs import int_range
+from sqlalchemy import or_, func
+from sqlalchemy.orm import joinedload
+from werkzeug.exceptions import NotFound
+
+from controllers.console import api
+from controllers.console.app import _get_app
+from controllers.console.setup import setup_required
+from controllers.console.wraps import account_initialization_required
+from libs.helper import TimestampField, datetime_string, uuid_value
+from extensions.ext_database import db
+from models.model import Message, MessageAnnotation, Conversation
 from core.login.login import login_required
 from flask_restful import Resource, reqparse, marshal_with, abort, fields, marshal
 
@@ -8,7 +25,6 @@ import services
 from controllers.console import api
 from controllers.console.setup import setup_required
 from controllers.console.wraps import account_initialization_required
-from libs.helper import TimestampField
 from extensions.ext_database import db
 from models.account import Account, Department, DepartmentAppJoin, DepartmentEndUserJoin, TenantAccountJoin
 from services.account_service import TenantService, RegisterService
@@ -321,6 +337,136 @@ class departmentQueryApi(Resource):
         return {'result': 'success', 'departments': departments}, 200
 
 
+class GetConversationApi(Resource):
+    simple_configs_fields = {
+        'prompt_template': fields.String,
+    }
+
+    simple_model_config_fields = {
+        'model': fields.Raw(attribute='model_dict'),
+        'pre_prompt': fields.String,
+    }
+
+    feedback_stat_fields = {
+    'like': fields.Integer,
+    'dislike': fields.Integer
+    }
+
+    conversation_fields = {
+        'id': fields.String,
+        'status': fields.String,
+        'from_source': fields.String,
+        'from_end_user_id': fields.String,
+        'from_end_user_session_id': fields.String,
+        'from_account_id': fields.String,
+        'summary': fields.String(attribute='summary_or_query'),
+        'read_at': TimestampField,
+        'created_at': TimestampField,
+        'annotated': fields.Boolean,
+        'model_config': fields.Nested(simple_model_config_fields),
+        'message_count': fields.Integer,
+        'user_feedback_stats': fields.Nested(feedback_stat_fields),
+        'admin_feedback_stats': fields.Nested(feedback_stat_fields)
+    }
+
+    conversation_pagination_fields = {
+        'page': fields.Integer,
+        'limit': fields.Integer(attribute='per_page'),
+        'total': fields.Integer,
+        'has_more': fields.Boolean(attribute='has_next'),
+        'data': fields.List(fields.Nested(conversation_fields), attribute='items')
+    }
+
+#    @setup_required
+#    @login_required
+#    @account_initialization_required
+    @marshal_with(conversation_pagination_fields)
+    def get(self, department_id):
+
+        appids = TenantService.get_department_appids(department_id)
+
+        #app_id = str(app_id)
+
+        parser = reqparse.RequestParser()
+        parser.add_argument('keyword', type=str, location='args')
+        parser.add_argument('start', type=datetime_string('%Y-%m-%d %H:%M'), location='args')
+        parser.add_argument('end', type=datetime_string('%Y-%m-%d %H:%M'), location='args')
+        parser.add_argument('annotation_status', type=str,
+                            choices=['annotated', 'not_annotated', 'all'], default='all', location='args')
+        parser.add_argument('message_count_gte', type=int_range(1, 99999), required=False, location='args')
+        parser.add_argument('page', type=int_range(1, 99999), required=False, default=1, location='args')
+        parser.add_argument('limit', type=int_range(1, 100), required=False, default=20, location='args')
+        args = parser.parse_args()
+
+        # get app info
+        #app = _get_app(app_id, 'chat')
+
+        query = db.select(Conversation).where(Conversation.app_id in appids, Conversation.mode == 'chat')
+
+        if args['keyword']:
+            query = query.join(
+                Message, Message.conversation_id == Conversation.id
+            ).filter(
+                or_(
+                    Message.query.ilike('%{}%'.format(args['keyword'])),
+                    Message.answer.ilike('%{}%'.format(args['keyword'])),
+                    Conversation.name.ilike('%{}%'.format(args['keyword'])),
+                    Conversation.introduction.ilike('%{}%'.format(args['keyword'])),
+                ),
+
+            )
+
+        account = current_user
+        timezone = pytz.timezone(account.timezone)
+        utc_timezone = pytz.utc
+
+        if args['start']:
+            start_datetime = datetime.strptime(args['start'], '%Y-%m-%d %H:%M')
+            start_datetime = start_datetime.replace(second=0)
+
+            start_datetime_timezone = timezone.localize(start_datetime)
+            start_datetime_utc = start_datetime_timezone.astimezone(utc_timezone)
+
+            query = query.where(Conversation.created_at >= start_datetime_utc)
+
+        if args['end']:
+            end_datetime = datetime.strptime(args['end'], '%Y-%m-%d %H:%M')
+            end_datetime = end_datetime.replace(second=59)
+
+            end_datetime_timezone = timezone.localize(end_datetime)
+            end_datetime_utc = end_datetime_timezone.astimezone(utc_timezone)
+
+            query = query.where(Conversation.created_at < end_datetime_utc)
+
+        if args['annotation_status'] == "annotated":
+            query = query.options(joinedload(Conversation.message_annotations)).join(
+                MessageAnnotation, MessageAnnotation.conversation_id == Conversation.id
+            )
+        elif args['annotation_status'] == "not_annotated":
+            query = query.outerjoin(
+                MessageAnnotation, MessageAnnotation.conversation_id == Conversation.id
+            ).group_by(Conversation.id).having(func.count(MessageAnnotation.id) == 0)
+
+        if args['message_count_gte'] and args['message_count_gte'] >= 1:
+            query = (
+                query.options(joinedload(Conversation.messages))
+                .join(Message, Message.conversation_id == Conversation.id)
+                .group_by(Conversation.id)
+                .having(func.count(Message.id) >= args['message_count_gte'])
+            )
+
+        query = query.order_by(Conversation.created_at.desc())
+
+        conversations = db.paginate(
+            query,
+            page=args['page'],
+            per_page=args['limit'],
+            error_out=False
+        )
+
+        return conversations
+
+
 
 api.add_resource(DepartmentListApi, '/workspaces/current/departments')
 api.add_resource(DepartmentCreateApi, '/workspaces/current/departments')
@@ -336,3 +482,4 @@ api.add_resource(DepartmentAppListApi, '/workspaces/current/departments/<uuid:de
 api.add_resource(DepartmentAddAppApi, '/workspaces/current/departments/<uuid:department_id>/addapp/<uuid:app_id>')
 api.add_resource(DepartmentDeleteAppApi, '/workspaces/current/departments/<uuid:department_id>/deleteapp/<uuid:app_id>')
 api.add_resource(departmentQueryApi, '/workspaces/current/departments/query')
+api.add_resource(GetConversationApi, '/workspaces/current/departments/<uuid:department_id>/chat-conversations')
