@@ -383,11 +383,11 @@ class GetConversationApi(Resource):
     @marshal_with(conversation_pagination_fields)
     def get(self, department_id):
 
-        #appids = TenantService.get_department_appids(department_id)
-        apps = TenantService.get_department_apps(department_id)
-
-
-        #app_id = str(app_id)
+        appids = TenantService.get_department_appids(department_id)
+        #apps = TenantService.get_department_apps(department_id)
+        app_id = ''
+        if(len(appids)>0):
+            app_id = str(appids[0])
 
         parser = reqparse.RequestParser()
         parser.add_argument('keyword', type=str, location='args')
@@ -401,9 +401,12 @@ class GetConversationApi(Resource):
         args = parser.parse_args()
 
         # get app info
-        #app = _get_app(app_id, 'chat')
-        app = apps[0]
+        app = _get_app(app_id, 'chat')
+    #    app = ''
+    #    if len(apps)>0:
+    #        app= apps[0]
 
+ 
         query = db.select(Conversation).where(Conversation.app_id == app.id, Conversation.mode == 'chat')
 
         if args['keyword']:
