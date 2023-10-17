@@ -383,7 +383,9 @@ class GetConversationApi(Resource):
     @marshal_with(conversation_pagination_fields)
     def get(self, department_id):
 
-        appids = TenantService.get_department_appids(department_id)
+        #appids = TenantService.get_department_appids(department_id)
+        apps = TenantService.get_department_apps(department_id)
+
 
         #app_id = str(app_id)
 
@@ -400,8 +402,9 @@ class GetConversationApi(Resource):
 
         # get app info
         #app = _get_app(app_id, 'chat')
+        app = apps[0]
 
-        query = db.select(Conversation).where(Conversation.app_id in appids, Conversation.mode == 'chat')
+        query = db.select(Conversation).where(Conversation.app_id == app.id, Conversation.mode == 'chat')
 
         if args['keyword']:
             query = query.join(
