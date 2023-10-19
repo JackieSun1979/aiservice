@@ -353,6 +353,7 @@ class GetConversationApi(Resource):
     }
 
     conversation_fields = {
+        'app_id': fields.String,
         'id': fields.String,
         'status': fields.String,
         'from_source': fields.String,
@@ -388,6 +389,8 @@ class GetConversationApi(Resource):
         app_id = ''
         if(len(appids)>0):
             app_id = str(appids[0])
+        else:
+            abort(404)
 
         parser = reqparse.RequestParser()
         parser.add_argument('keyword', type=str, location='args')
