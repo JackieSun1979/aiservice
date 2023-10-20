@@ -17,7 +17,7 @@ from controllers.console.setup import setup_required
 from controllers.console.wraps import account_initialization_required
 from libs.helper import TimestampField, datetime_string, uuid_value
 from extensions.ext_database import db
-from models.model import Message, MessageAnnotation, Conversation
+from models.model import App, EndUser, Message, MessageAnnotation, Conversation
 from core.login.login import login_required
 from flask_restful import Resource, reqparse, marshal_with, abort, fields, marshal
 
@@ -384,16 +384,16 @@ class GetConversationApi(Resource):
     @marshal_with(conversation_pagination_fields)
     def get(self, department_id):
 
-        appids = TenantService.get_department_appids(department_id)
-        #apps = TenantService.get_department_apps(department_id)
-        app_id = ''
-        if(len(appids)>0):
-            app_id = str(appids[0])
-        else:
-            abort(404)
+        apps = TenantService.get_department_apps(department_id)
+    #    app_id = ''
+    #    if(len(appids)>0):
+    #        app_id = str(appids[0])
+    #    else:
+    #        abort(404)
 
         parser = reqparse.RequestParser()
         parser.add_argument('keyword', type=str, location='args')
+        parser.add_argument('enduser_id', type=str, location='args')
         parser.add_argument('start', type=datetime_string('%Y-%m-%d %H:%M'), location='args')
         parser.add_argument('end', type=datetime_string('%Y-%m-%d %H:%M'), location='args')
         parser.add_argument('annotation_status', type=str,
@@ -404,13 +404,25 @@ class GetConversationApi(Resource):
         args = parser.parse_args()
 
         # get app info
-        app = _get_app(app_id, 'chat')
+        #app = _get_app(app_id, 'chat')
     #    app = ''
     #    if len(apps)>0:
     #        app= apps[0]
 
+
  
-        query = db.select(Conversation).where(Conversation.app_id == app.id, Conversation.mode == 'chat')
+        query = db.select(Conversation).where(Conversation.mode == 'chat')
+
+        if len(apps)>0:
+            query = query.join(
+                App, App.id == Conversation.app_id
+            )
+
+
+        if args['enduser_id']:
+            enduser = EndUser.query.get(str(args['enduser_id']))
+            query = query.where(Conversation.from_end_user_id == enduser.id)
+
 
         if args['keyword']:
             query = query.join(
