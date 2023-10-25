@@ -959,10 +959,39 @@ class DocumentLimitApi(DocumentResource):
             'documents_limit': tenant_document_count
                 }, 200
 
+class DocumentsTokensCountApi(DocumentResource):
+#    @setup_required
+#    @login_required
+#    @account_initialization_required
+    def get(self, dataset_id):
+        """get document tokens count"""
+
+        dataset_id = str(dataset_id)
+        dataset = DatasetService.get_dataset(dataset_id)
+        if not dataset:
+            raise NotFound('Dataset not found.')
+
+
+        query = db.session.query(db.func.sum(Document.tokens)).filter_by(
+            dataset_id=str(dataset_id), tenant_id=current_user.current_tenant_id)
+        
+        tokens_count = query.scalar()
+        
+        #tokens_count = Document.query.filter(dataset_id=str(dataset_id),
+        #                                        tenant_id=current_user.current_tenant_id,
+        #                                        func.sum(Document.tokens))
+
+
+        return {
+            'tokens_count': tokens_count
+                }, 200
+
+
 
 api.add_resource(GetProcessRuleApi, '/datasets/process-rule')
 api.add_resource(DatasetDocumentListApi,
                  '/datasets/<uuid:dataset_id>/documents')
+api.add_resource(DocumentsTokensCountApi, '/datasets/<uuid:dataset_id>/tokenscount')
 api.add_resource(DatasetInitApi,
                  '/datasets/init')
 api.add_resource(DocumentIndexingEstimateApi,
